@@ -1,6 +1,7 @@
 <?php
 
 use App\Post;
+use Illuminate\Support\Str;
 use Illuminate\Database\Seeder;
 
 class PostSeeder extends Seeder
@@ -16,12 +17,15 @@ class PostSeeder extends Seeder
 
         $faker = Faker\Factory::create();
 
-        foreach (range(1, 100) as $index) {
+        foreach (range(1, 30) as $index) {
+
+            $title = $faker->sentence;
 
             Post::create([
                 "user_id" => rand(1, 20),
                 "category_id" => rand(1, 5),
                 "title" => $faker->sentence,
+                "slug" => Str::slug($title, "-"),
                 "content" => $faker->paragraph,
                 "thumbnail" => $faker->imageUrl,
                 "status" => $this->getRandomStatus()

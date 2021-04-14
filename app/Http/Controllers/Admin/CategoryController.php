@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Category;
+use Illuminate\Support\Str;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
@@ -15,9 +16,11 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        $categories = Category::with('posts')->get();
+        $categories = Category::all();
 
-        return $categories;
+        return response()->json([
+            "categories" => $categories
+        ], 200);
     }
 
     /**
@@ -38,7 +41,16 @@ class CategoryController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            "name"   => "required",
+            "status" => "required"
+        ]);
+        $title = $request->name;
+        Category::create([
+            "name"   => $request->name,
+            "slug"   => Str::slug($title),
+            "status"   => $request->status
+        ]);
     }
 
     /**
@@ -47,9 +59,11 @@ class CategoryController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show($slug)
     {
-        //
+        $category = Category::where('slug', $slug)->first();
+
+        return response()->json(["category" => $category], 200);
     }
 
     /**
@@ -70,9 +84,27 @@ class CategoryController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
-        //
+        $request->validate([
+            "name"   => "required",
+            "status" => "required"
+        ]);
+
+        $title = $request->name;
+
+        $category = Category::find($request->id);
+
+        $category->name     = $request->name;
+        $category->slug     = Str::slug($title);
+        $category->status   = $request->status;
+
+        if ($category->save()) {
+            $success = true;
+        } else {
+            $success = false;
+        }
+        return response()->json(["success" => $success], 200);
     }
 
     /**
@@ -81,8 +113,42 @@ class CategoryController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy($slug)
     {
-        //
+        $category = Category::where('slug', $slug)->first();
+
+        if ($category->delete()) {
+            $success = true;
+        } else {
+            $success = false;
+        }
+        return response()->json(["success" => $success], 200);
+    }
+
+    public function removeItems(Request $request)
+    {
+        $sl = 0;
+        foreach ($request->data as $id) {
+            $category = Category::find($id);
+            $category->delete();
+            $sl++;
+        }
+
+        $success = $sl > 0;
+        return response()->json(["success" => $success, 'total' => $sl], 200);
+    }
+
+    public function changeStatus(Request $request)
+    {
+        $sl = 0;
+        foreach ($request->data as $id) {
+            $category = Category::find($id);
+            $category->status = $request->status;
+            $category->save();
+            $sl++;
+        }
+
+        $success = $sl > 0;
+        return response()->json(["success" => $success, 'total' => $sl], 200);
     }
 }

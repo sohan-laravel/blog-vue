@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Category;
+use Illuminate\Support\Str;
 use App\Http\Controllers\Controller;
 use App\Post;
 use Illuminate\Http\Request;
@@ -16,9 +17,9 @@ class PostController extends Controller
      */
     public function index()
     {
-        $posts = Post::with('category', 'user')->get();
+        $post = Post::with('category', 'user')->get();
 
-        return $posts;
+        return response()->json(["post" => $post], 200);
     }
 
     /**
@@ -39,7 +40,16 @@ class PostController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            "name"   => "required",
+            "status" => "required"
+        ]);
+        $title = $request->name;
+        Post::create([
+            "name"   => $request->name,
+            "slug"   => Str::slug($title),
+            "status"   => $request->status
+        ]);
     }
 
     /**
@@ -48,9 +58,11 @@ class PostController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show($slug)
     {
-        //
+        $post = Post::where('slug', $slug)->first();
+
+        return response()->json(["post" => $post], 200);
     }
 
     /**
@@ -73,7 +85,25 @@ class PostController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        $request->validate([
+            "name"   => "required",
+            "status" => "required"
+        ]);
+
+        $title = $request->name;
+
+        $post = Post::find($request->id);
+
+        $post->name     = $request->name;
+        $post->slug     = Str::slug($title);
+        $post->status   = $request->status;
+
+        if ($post->save()) {
+            $success = true;
+        } else {
+            $success = false;
+        }
+        return response()->json(["success" => $success], 200);
     }
 
     /**
@@ -82,8 +112,42 @@ class PostController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy($slug)
     {
-        //
+        $post = Post::where('slug', $slug)->first();
+
+        if ($post->delete()) {
+            $success = true;
+        } else {
+            $success = false;
+        }
+        return response()->json(["success" => $success], 200);
+    }
+
+    public function removeItems(Request $request)
+    {
+        $sl = 0;
+        foreach ($request->data as $id) {
+            $post = Post::find($id);
+            $post->delete();
+            $sl++;
+        }
+
+        $success = $sl > 0;
+        return response()->json(["success" => $success, 'total' => $sl], 200);
+    }
+
+    public function changeStatus(Request $request)
+    {
+        $sl = 0;
+        foreach ($request->data as $id) {
+            $post = Post::find($id);
+            $post->status = $request->status;
+            $post->save();
+            $sl++;
+        }
+
+        $success = $sl > 0;
+        return response()->json(["success" => $success, 'total' => $sl], 200);
     }
 }
